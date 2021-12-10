@@ -65,6 +65,7 @@ Consider all of the lines. At how many points do at least two lines overlap?
 from collections import namedtuple
 import numpy as np
 from operator import xor
+import matplotlib.pyplot as plt
 
 LineSegmentTuple = namedtuple('LineSegment', ['x1', 'y1', 'x2', 'y2'])
 
@@ -100,6 +101,10 @@ class LineSegment:
 #     coords = np.fromstring(line.replace(' -> ', ','), sep=',', dtype=int)
 #     return LineSegmentTuple(*coords)
 
+def show_field(field, title=''):
+    fig = plt.imshow(field)
+    plt.title(title)
+    plt.show()
 
 def part_1(lines):
     line_segments = [LineSegment(line) for line in lines]
@@ -108,8 +113,8 @@ def part_1(lines):
     field = np.zeros((1000, 1000))
     for ls in valid_line_segments:
         field[ls.x_coords, ls.y_coords] += 1
-    print(field)
-    print(np.sum(field>=2))
+    show_field(field, 'part1')
+    print(np.sum(field >= 2))
 
     # line_segments = [parse_line(line) for line in lines]
     # field = np.zeros((10, 10))
@@ -131,12 +136,12 @@ def part_2(lines):
     field = np.zeros((1000, 1000))
     for ls in line_segments:
         field[ls.x_coords, ls.y_coords] += 1
-    print(field)
+    show_field(field, 'part2')
     print(np.sum(field >= 2))
 
 if __name__ == '__main__':
     with open('day5_input.txt') as f:
     # with open('day5_testinput.txt') as f:
         lines = f.readlines()
-    # part_1(lines)
+    part_1(lines)
     part_2(lines)
