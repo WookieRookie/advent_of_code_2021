@@ -72,46 +72,56 @@ For each entry, determine all of the wire/segment connections and decode the fou
 What do you get if you add up all of the output values?
 """
 from collections import Counter
+from typing import Dict
 
-def create_encoder(signal_patterns):
-    """ Create an encoding for each segment letter.
-    Count the frequency of each letter in the 10 scrambled signals. Encode letter as 10^(letter_frequency-3)  """
+EncoderType = dict[str, int]
+DecoderType = dict[int, int]
+
+def create_encoder(signal_patterns: str) -> EncoderType:
+    """
+    Create an encoding for each segment letter.
+    Each letter is encoded as the count the frequency of that letter in the 10 scrambled signals.
+
+    :arg signal_patterns: str containing the signal patterns for all 10 digits
+    """
     character_counts = Counter(signal_patterns)
     least_common = min(character_counts.values())
     encoder = {letter: (letter_frequency-least_common) for letter, letter_frequency in character_counts.items()}
     return encoder
 
 
-def encode_digit_output(digit_output, encoder):
-    """ Apply encoder to encode the digit output string as a number which encodes the number of occurrences of
-    each character frequency type + the number of segments in the digit """
+def encode_digit_output(digit_output: str, encoder: EncoderType) -> int:
+    """
+    Apply encoder to encode the digit output string as a number which encodes the number of occurrences of
+    each character frequency type + the number of segments in the digit
+    """
     encoding = 0
     # return len(digit_output)
     for letter in digit_output:
-        encoding += 10**(encoder[letter]+1)
-    encoding = encoding + len(digit_output)
+        encoding += 10**(encoder[letter]+1) # encode the count of segments of x frequency in the 10^x place
+    encoding = encoding + len(digit_output) # encode the number of segments in the digit in the 1's place
     return encoding
 
 
-def create_decoder(encoder):
-    """ Apply encoder to the unscrambled "regular" digit segment string to create a decoder.
-    Maps encoded digit segment string to the numeric digit it represents """
+def create_decoder(encoder: EncoderType) -> DecoderType:
+    """
+    Create a "decoder" which maps digit embeddings to digit values.
+    """
     return {encode_digit_output(value, encoder): key for key, value in SEGMENTS_IN_DIGITS.items()}
 
 
-def determine_digits_in_line(signal_patterns, digit_outputs, decoder):
-    encoder = create_encoder(signal_patterns.replace(' ', ''))
-    # decoder = create_decoder(encoder)
-    encoded_digit_outputs = [encode_digit_output(x, encoder) for x in digit_outputs]
-    decoded_digits = []
-    for encoded_digit in encoded_digit_outputs:
-        decoded_digit = decoder[encoded_digit]
-        decoded_digits.append(decoded_digit)
-    # decoded_digits = [decoder[x] for x in encoded_digit_outputs]
-    return decoded_digits
+def determine_digits_in_line(scrambled_signal_patterns: str, scrambled_digit_outputs: list[str], decoder: DecoderType) -> list[int]:
+    """
+    Determine the unscrambled values of the 4 output values based on the scrambled signal patterns and scrambled digit
+    output codes
+    """
+    encoder = create_encoder(scrambled_signal_patterns.replace(' ', ''))
+    encoded_digit_outputs = [encode_digit_output(x, encoder) for x in scrambled_digit_outputs]
+    decoded_digit_outputs = [decoder[encoded_digit] for encoded_digit in encoded_digit_outputs]
+    return decoded_digit_outputs
 
 
-def parse_input_line(line):
+def parse_input_line(line: str) -> (str, list[str]):
     line = line.replace('\n', '')
     signal_patterns, digit_outputs = line.split(' | ')
     # signal_patterns = signal_patterns.split(' ')
@@ -119,21 +129,24 @@ def parse_input_line(line):
     return (signal_patterns, digit_outputs)
 
 
-def part_1(decoded_outputs):
+def part_1(decoded_outputs: list[list[int]]):
     flattened_decoded_outputs = []
     [flattened_decoded_outputs.extend(x) for x in decoded_outputs]
     digit_counts = Counter(flattened_decoded_outputs)
     answer = digit_counts[1] + digit_counts[4] + digit_counts[7] + digit_counts[8]
     print(f'answer to part 1 is: {answer}')
 
+def determine_numeric_value(decoded_output:list[int]) -> int:
+    """ determine the numeric value of the 4 digit number """
+    output_value = 0
+    for i, val in enumerate(decoded_output):
+        output_value += val * 10 ** (3 - i)
+    return output_value
 
-def part_2(decoded_outputs):
+def part_2(decoded_outputs: list[list[int]]):
     total = 0
     for decoded_output in decoded_outputs:
-        output_value = 0
-        for i, val in enumerate(decoded_output):
-            output_value += val * 10**(3-i)
-        total += output_value
+        total += determine_numeric_value(decoded_output)
     print(f'answer to part 2 is: {total}')
     return total
 
@@ -153,16 +166,16 @@ if __name__ == '__main__':
     with open('day8_input.txt') as f:
         lines = f.readlines()
 
-    # tests
+    # create decoder
     digit_list = list(range(10))
     nonscrambled_signal_patterns = ' '.join([SEGMENTS_IN_DIGITS[x] for x in digit_list])
     decoder = create_decoder(create_encoder(nonscrambled_signal_patterns))
+
+    # tests - confirm round trip works
     nonscrambled_digit_outputs = [SEGMENTS_IN_DIGITS[x] for x in digit_list]
     decoded_digit_outputs = determine_digits_in_line(nonscrambled_signal_patterns, nonscrambled_digit_outputs, decoder)
     print(decoded_digit_outputs)
-    # assert digit_list == decoded_digit_outputs
-
-
+    assert digit_list == decoded_digit_outputs
 
     # solve puzzle
     puzzle_input = [parse_input_line(line) for line in lines]
@@ -170,7 +183,7 @@ if __name__ == '__main__':
     for signal_patterns, digit_outputs in puzzle_input:
         # print(signal_patterns)
         # print(digit_outputs)
-        decoded_output = determine_digits_in_line(signal_patterns=signal_patterns, digit_outputs=digit_outputs, decoder=decoder)
+        decoded_output = determine_digits_in_line(scrambled_signal_patterns=signal_patterns, scrambled_digit_outputs=digit_outputs, decoder=decoder)
         decoded_outputs.append(decoded_output)
     part_1(decoded_outputs)
     part_2(decoded_outputs)
